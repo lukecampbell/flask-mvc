@@ -14,6 +14,11 @@ setup(name = 'Flask-MVC',
         author_email='luke.s.campbell@gmail.com',
         packages=packages,
         install_requires=['flask==0.9','requests==1.2.0','python-cjson==1.0.5'],
+        entry_points={
+            'console_scripts':[
+                'generate = flask_mvc.utils.generate:main',
+                ],
+            }
         )
 
 
