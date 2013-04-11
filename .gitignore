@@ -1,2 +1,5 @@
 *swp
 *pyc
+dist/
+build/
+Flask_MVC.egg-info
