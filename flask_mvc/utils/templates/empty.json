@@ -1,0 +1,25 @@
+{ "files": {
+        ".gitignore":"",
+        "README.md":"",
+        "setup.py":"",
+        "%s":{
+            "__init__.py":"",
+            "app.py":"",
+            "controllers":{
+                "__init__.py":"",
+                "hello.py":""
+            }
+            "models":{
+                "__init__.py":"",
+                "hello.py":""
+            }
+            "views":{
+                "__init__.py":"",
+                "hello.py":""
+            }
+            "templates":{
+                "hello.html":""
+            }
+        }
+   }
+}
