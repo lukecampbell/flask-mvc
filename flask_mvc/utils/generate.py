@@ -7,16 +7,26 @@
 import cjson as json
 import os
 import sys
+import pkg_resources
 
 def generate(project_root, project_name, template_file):
+    '''
+    Generate a new project based on the JSON schema
+    '''
+    print 'Initializing new project %s at %s' %(project_name,project_root)
+    print 'Using template: %s' % os.path.basename(template_file)
     if not os.path.exists(project_root):
         os.mkdir(project_root)
-    template = {}
-    with open(template_file,'r') as f:
-        template = json.decode(f.read())
-        generate_walk(project_root, project_name, template['files'])
+    if template_file.endswith('.json'):
+        template = {}
+        with open(template_file,'r') as f:
+            template = json.decode(f.read())
+            generate_walk(project_root, project_name, template['files'])
 
 def generate_walk(dirent, name, template):
+    '''
+    Walk the template object creating the appropriate files
+    '''
     if not isinstance(template,dict):
         return
     for k,v in template.iteritems():
@@ -36,7 +46,7 @@ def generate_walk(dirent, name, template):
                 f.write(v)
 def main():
     if len(sys.argv) < 3:
-        print 'generate <project name> <project root> [<template>]'
+        print '%s <project name> <project root> [<template>]' % sys.argv[0]
         sys.exit(1)
 
     name = sys.argv[1]
@@ -44,7 +54,7 @@ def main():
     if len(sys.argv) > 3:
         template = sys.argv[3]
     else:
-        template = os.path.join(os.path.dirname(__file__), 'templates/empty.json')
+        template = os.path.join(pkg_resources.resource_filename(__name__, 'templates/empty.json'))
     generate(root,name,template)
 
 
