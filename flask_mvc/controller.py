@@ -2,7 +2,6 @@
 '''
 @author Luke Campbell
 @file flask_mvc/controller.py
-@module flask_mvc
 @license Apache 2.0
 '''
 
