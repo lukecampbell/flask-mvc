@@ -6,7 +6,8 @@ except ImportError:
     packages = ['flask_mvc']
 
 setup(name = 'Flask-MVC',
-        version='0.0.1',
+        version='0.0.2',
+        description='A framework to extend Flask to follow the model view controller, MVC, web application development pattern.',
         long_description=open('README.md','r').read(),
         license='LICENSE.txt',
         author='Luke Campbell',
