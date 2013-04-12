@@ -64,16 +64,16 @@ class Connection(object):
         retval = [{self.cursor.description[idx][0]:value for idx,value in enumerate(row)} for row in self.cursor.fetchall()]
         return (retval[0] if rv else None) if one else retval
 
-    def create_tables(self, table_schema):
+    def create_tables(self, schema):
         commands = []
         for table,fields in schema.iteritems():
             sql = self.create_table(table,fields)
             commands.append(sql)
         return commands
     
-    def create_table(self, name, schema):
+    def create_table(self, name, table_schema):
         sql = 'CREATE TABLE %s(' % name
-        sql += ','.join(['%s %s' % (field,value) for field,value in schema.iteritems()])
+        sql += ','.join(['%s %s' % (field,value) for field,value in table_schema.iteritems()])
         sql += ')'
         self.cursor.execute(sql)
         self.commit()
