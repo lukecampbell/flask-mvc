@@ -23,23 +23,37 @@ class Types(object):
     def primary_key(cls, val):
         return '%s PRIMARY KEY' % val
 
+    @classmethod
+    def primary_keys(cls, vals=[]):
+        return 'PRIMARY KEY (%s)' % ','.join(vals)
+
+def _parse_fields(fields):
+    primary_keys = [k for k,v in fields.iteritems() if v.endswith('*')]
+    primary_key_count = len(primary_keys)
+    if not primary_key_count:
+        raise ValueError('No primary key defined')
+    for field, value in fields.iteritems():
+        modifier = lambda x:x
+        if value.endswith('*'):
+            if primary_key_count==1:
+                modifier = Types.primary_key
+            value = value[:-1]
+        elif value.endswith('+'):
+            modifier = Types.not_null
+            value = value[:-1]
+        if value in Types.attrs:
+            fields[field] = modifier(getattr(Types,value))
+        else:
+            raise TypeError('Unknown schema field type: %s' % value)
+    if primary_key_count > 1:
+        fields['PRIMARY KEY'] = Types.primary_keys(primary_keys)
+
 def parse_model(definition):
     schema = {}
     with open(definition,'r') as f:
         schema = yaml.load(f.read(), Loader=OrderedDictYAMLLoader)
     for table,fields in schema.iteritems():
-        for field, value in fields.iteritems():
-            modifier = lambda x:x
-            if value.endswith('*'):
-                modifier = Types.primary_key
-                value = value[:-1]
-            elif value.endswith('+'):
-                modifier = Types.not_null
-                value = value[:-1]
-            if value in Types.attrs:
-                fields[field] = modifier(getattr(Types,value))
-            else:
-                raise TypeError('Unknown schema field type: %s' % value)
+        _parse_fields(fields)
     return schema
 
 class Connection(object):
@@ -60,9 +74,9 @@ class Connection(object):
         self.commit_and_close()
 
     def query_db(self,query, args=(), one=False):
-        self.cursor.execute(query,args)
+        self.execute(query,args)
         retval = [{self.cursor.description[idx][0]:value for idx,value in enumerate(row)} for row in self.cursor.fetchall()]
-        return (retval[0] if rv else None) if one else retval
+        return (retval[0] if retval else None) if one else retval
 
     def create_tables(self, schema):
         commands = []
@@ -73,9 +87,17 @@ class Connection(object):
     
     def create_table(self, name, table_schema):
         sql = 'CREATE TABLE %s(' % name
-        sql += ','.join(['%s %s' % (field,value) for field,value in table_schema.iteritems()])
+        sql += ','.join(['%s %s' % (field,value) for field,value in table_schema.iteritems() if field != 'PRIMARY KEY'])
+        if 'PRIMARY KEY' in table_schema:
+            sql += ', %s' % table_schema['PRIMARY KEY']
         sql += ')'
-        self.cursor.execute(sql)
+        self.execute(sql)
+        self.commit()
+        return sql
+
+    def drop_table(self, name):
+        sql = 'DROP TABLE %s' % name
+        self.execute(sql)
         self.commit()
         return sql
 
@@ -86,17 +108,29 @@ class Connection(object):
                 values[i] = '"%s"' % value
         sql += ','.join([str(v) for v in values])
         sql += ')'
-        print sql
-        self.cursor.execute(sql)
+        self.execute(sql)
         self.commit()
         return sql
+
+    def execute(self, sql, args=()):
+        try:
+            self.cursor.execute(sql,args)
+        except sqlite3.OperationalError as e:
+            raise sqlite3.OperationalError(e.message + ' : ' + sql)
 
 
 class ObjectFactory(object):
     @classmethod
     def create(cls, name, table_schema):
+        if 'PRIMARY KEY' in table_schema:
+            del table_schema['PRIMARY KEY']
         retval = type(name, (ModelObject,), dict(_table=name, _schema=table_schema, _fields=table_schema.keys(), **table_schema))
         return retval
+
+    @classmethod
+    def create_from_yaml(cls, name, filepath):
+        schema = parse_model(filepath)
+        return cls.create(name,schema[name])
 
 
 
@@ -119,6 +153,24 @@ class ModelObject(object):
         retval +='>'
         return retval
 
+    def iteritems(self):
+        for field in self._fields:
+            try:
+                v = getattr(self,field)
+            except AttributeError:
+                v = None
+            yield field, v
+        return
+
+    @classmethod
+    def initialize(cls, connection):
+        connection.create_table(cls._table, cls._schema)
+
+    @classmethod
+    def reinitialize(cls, connection):
+        connection.drop_table(cls._table)
+        cls.initialize(connection)
+
     
     def create(self,connection):
         if not isinstance(connection,Connection):
@@ -136,6 +188,8 @@ class ModelObject(object):
         query = 'SELECT * FROM %s' % cls._table
         return [cls(**i) for i in connection.query_db(query)]
 
+    def __eq__(self, other):
+        return vars(self) == vars(other)
 
             
 

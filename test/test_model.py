@@ -18,8 +18,24 @@ class ModelTest(TestCase):
 
     def create_table_and_class(self,name):
         obj = ObjectFactory.create(name, self.schema[name])
-        self.connection.create_table(name,self.schema[name])
+        obj.initialize(self.connection)
         return obj
+
+    def test_from_yaml(self):
+        User = ObjectFactory.create_from_yaml('User', pkg_resources.resource_filename(__name__,'User.yml'))
+        User.initialize(self.connection)
+        gibbs = User(0,'Gibbs',45)
+        gibbs.create(self.connection)
+
+        self.assertEquals(User.where(self.connection,'id=0'), [gibbs])
+
+        User.reinitialize(self.connection)
+
+        self.assertEquals(User.where(self.connection,'id=0'), [])
+
+
+
+        
 
     def test_orm(self):
         User = self.create_table_and_class('User')
