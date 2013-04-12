@@ -9,34 +9,39 @@ Usage
 SQLite3 Object Relational Map
 -----------------------------
 
-1. Define an Object Schema
-```yaml
+#### 1. Define an Object Schema
+
+```yml
 User:
   id: integer*
   name: string
   age: integer
 ```
 
-2. Load it into the model
+#### 2. Load it into the model
+
 ```python
 from flask_mvc.model.sqlite import parse_model
 schema = parse_model('User.yml')
 ```
 
-3. Create the table
+#### 3. Create the table
+
 ```python
 from flask_mvc.model.sqlite import Connection
 con = Connection(':memory:')
 con.create_tables(schema)
 ```
 
-4. Make the object type
+#### 4. Make the object type
+
 ```python
 from flask_mvc.model.sqlite import ObjectFactory
 User = ObjectFactory.create('User',schema['User'])
 ```
 
-5. Enter some data
+#### 5. Enter some data
+
 ```python
 luke = User(id=0, name='Luke', age=26)
 luke.create(con)
@@ -44,13 +49,15 @@ sean = User(id=1, name='Sean', age=27)
 sean.create(con)
 ```
 
-6. Get some data
+#### 6. Get some data
+
 ```python
 print User.list(con)
 > [<User id=0,name=Luke,age=26>, <User id=1,name=Sean,age=27>]
 ```
 
-7. Narrow it down
+#### 7. Narrow it down
+
 ```python
 print User.where(con, 'name="Luke"')
 > [<User id=0,name=Luke,age=26>]
