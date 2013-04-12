@@ -1,0 +1,4 @@
+User:
+  id: integer*
+  name: string
+  age: integer+

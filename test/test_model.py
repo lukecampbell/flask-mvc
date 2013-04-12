@@ -6,7 +6,7 @@ import pkg_resources
 class ModelTest(TestCase):
     def setUp(self):
         self.connection = Connection(':memory:')
-        self.schema = parse_model(pkg_resources.resource_filename(__name__, 'user.yml'))
+        self.schema = parse_model(pkg_resources.resource_filename(__name__, 'User.yml'))
 
     def test_object_factory(self):
         User = ObjectFactory.create('User', self.schema['User'])
