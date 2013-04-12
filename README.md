@@ -18,29 +18,21 @@ User:
   age: integer
 ```
 
-#### 2. Load it into the model
-
-```python
-from flask_mvc.model.sqlite import parse_model
-schema = parse_model('User.yml')
-```
-
-#### 3. Create the table
-
-```python
-from flask_mvc.model.sqlite import Connection
-con = Connection(':memory:')
-con.create_tables(schema)
-```
-
-#### 4. Make the object type
+#### 2. Create an Object Type
 
 ```python
 from flask_mvc.model.sqlite import ObjectFactory
-User = ObjectFactory.create('User',schema['User'])
+User = ObjectFactory.create_from_yaml('User', 'User.yml')
 ```
 
-#### 5. Enter some data
+#### 3. Initialize the Object type in the database
+
+```python
+# This creates the table 
+User.initialize()
+```
+
+#### 4. Enter some data
 
 ```python
 luke = User(id=0, name='Luke', age=26)
@@ -49,14 +41,14 @@ sean = User(id=1, name='Sean', age=27)
 sean.create(con)
 ```
 
-#### 6. Get some data
+#### 5. Get some data
 
 ```python
 print User.list(con)
 > [<User id=0,name=Luke,age=26>, <User id=1,name=Sean,age=27>]
 ```
 
-#### 7. Narrow it down
+#### 6. Narrow it down
 
 ```python
 print User.where(con, 'name="Luke"')
