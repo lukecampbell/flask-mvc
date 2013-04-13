@@ -1,5 +1,6 @@
 import yaml
 from flask_mvc.utils.yaml_loader import OrderedDictYAMLLoader
+from flask_mvc.utils.pluralize import pluralize
 
 
 class Types(object):
@@ -32,7 +33,7 @@ class Types(object):
     def create(cls, name, table_schema):
         if 'PRIMARY KEY' in table_schema:
             del table_schema['PRIMARY KEY']
-        retval = type(name, (ModelObject,), dict(_table=name, _schema=table_schema, _fields=table_schema.keys(), **table_schema))
+        retval = type(name, (ModelObject,), dict(_table=pluralize(name), _schema=table_schema, _fields=table_schema.keys(), **table_schema))
         return retval
 
     @classmethod
