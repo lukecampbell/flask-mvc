@@ -1,15 +1,16 @@
-from flask_mvc.model.sqlite import parse_model, Connection, ObjectFactory
+from flask_mvc.model.sqlite import SQLiteTypes, SQLiteConnection
 
 from unittest import TestCase
 import pkg_resources
 
-class ModelTest(TestCase):
+class SQLiteTest(TestCase):
+    
     def setUp(self):
-        self.connection = Connection(':memory:')
-        self.schema = parse_model(pkg_resources.resource_filename(__name__, 'User.yml'))
+        self.connection = SQLiteConnection(':memory:')
+        self.schema = SQLiteTypes.parse_model(pkg_resources.resource_filename(__name__, 'User.yml'))
 
     def test_object_factory(self):
-        User = ObjectFactory.create('User', self.schema['User'])
+        User = SQLiteTypes.create('User', self.schema['User'])
         luke = User(0,'luke',26)
         self.assertEquals(luke._fields, ['id','name','age'])
         self.assertEquals(luke.name,'luke')
@@ -17,12 +18,12 @@ class ModelTest(TestCase):
         self.assertEquals(luke.age,26)
 
     def create_table_and_class(self,name):
-        obj = ObjectFactory.create(name, self.schema[name])
+        obj = SQLiteTypes.create(name, self.schema[name])
         obj.initialize(self.connection)
         return obj
 
     def test_from_yaml(self):
-        User = ObjectFactory.create_from_yaml('User', pkg_resources.resource_filename(__name__,'User.yml'))
+        User = SQLiteTypes.create_from_yaml('User', pkg_resources.resource_filename(__name__,'User.yml'))
         User.initialize(self.connection)
         gibbs = User(0,'Gibbs',45)
         gibbs.create(self.connection)
@@ -33,9 +34,6 @@ class ModelTest(TestCase):
 
         self.assertEquals(User.where(self.connection,'id=0'), [])
 
-
-
-        
 
     def test_orm(self):
         User = self.create_table_and_class('User')

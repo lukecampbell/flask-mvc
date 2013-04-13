@@ -1,11 +1,9 @@
 import sqlite3
 import yaml
-from flask_mvc.utils.yaml_loader import OrderedDictYAMLLoader
+from flask_mvc.model.generic import ModelTypes, Connection
+from flask_mvc.model.generic import ModelObject as ModelObjectG
 
-
-class Types(object):
-    attrs=['small_string','string','integer','float','real','numeric','boolean','date','datetime']
-    
+class SQLiteTypes(ModelTypes):
     small_string='TEXT'
     string='TEXT'
     integer='INTEGER'
@@ -15,48 +13,10 @@ class Types(object):
     boolean='NUMERIC'
     date='NUMERIC'
     datetime='NUMERIC'
+    double='REAL'
 
-    @classmethod
-    def not_null(cls, val):
-        return '%s NOT NULL' % val
-    @classmethod
-    def primary_key(cls, val):
-        return '%s PRIMARY KEY' % val
 
-    @classmethod
-    def primary_keys(cls, vals=[]):
-        return 'PRIMARY KEY (%s)' % ','.join(vals)
-
-def _parse_fields(fields):
-    primary_keys = [k for k,v in fields.iteritems() if v.endswith('*')]
-    primary_key_count = len(primary_keys)
-    if not primary_key_count:
-        raise ValueError('No primary key defined')
-    for field, value in fields.iteritems():
-        modifier = lambda x:x
-        if value.endswith('*'):
-            if primary_key_count==1:
-                modifier = Types.primary_key
-            value = value[:-1]
-        elif value.endswith('+'):
-            modifier = Types.not_null
-            value = value[:-1]
-        if value in Types.attrs:
-            fields[field] = modifier(getattr(Types,value))
-        else:
-            raise TypeError('Unknown schema field type: %s' % value)
-    if primary_key_count > 1:
-        fields['PRIMARY KEY'] = Types.primary_keys(primary_keys)
-
-def parse_model(definition):
-    schema = {}
-    with open(definition,'r') as f:
-        schema = yaml.load(f.read(), Loader=OrderedDictYAMLLoader)
-    for table,fields in schema.iteritems():
-        _parse_fields(fields)
-    return schema
-
-class Connection(object):
+class SQLiteConnection(Connection):
     _db=None
     def __init__(self, database):
         self.conn = sqlite3.connect(database)
@@ -72,46 +32,6 @@ class Connection(object):
         self.cursor = self.conn.cursor()
     def __exit__(self, type, value, traceback):
         self.commit_and_close()
-
-    def query_db(self,query, args=(), one=False):
-        self.execute(query,args)
-        retval = [{self.cursor.description[idx][0]:value for idx,value in enumerate(row)} for row in self.cursor.fetchall()]
-        return (retval[0] if retval else None) if one else retval
-
-    def create_tables(self, schema):
-        commands = []
-        for table,fields in schema.iteritems():
-            sql = self.create_table(table,fields)
-            commands.append(sql)
-        return commands
-    
-    def create_table(self, name, table_schema):
-        sql = 'CREATE TABLE %s(' % name
-        sql += ','.join(['%s %s' % (field,value) for field,value in table_schema.iteritems() if field != 'PRIMARY KEY'])
-        if 'PRIMARY KEY' in table_schema:
-            sql += ', %s' % table_schema['PRIMARY KEY']
-        sql += ')'
-        self.execute(sql)
-        self.commit()
-        return sql
-
-    def drop_table(self, name):
-        sql = 'DROP TABLE %s' % name
-        self.execute(sql)
-        self.commit()
-        return sql
-
-    def insert(self, table, values=[]):
-        sql = 'INSERT INTO %s VALUES(' % table
-        for i,value in enumerate(values):
-            if isinstance(value,basestring):
-                values[i] = '"%s"' % value
-        sql += ','.join([str(v) for v in values])
-        sql += ')'
-        self.execute(sql)
-        self.commit()
-        return sql
-
     def execute(self, sql, args=()):
         try:
             self.cursor.execute(sql,args)
@@ -119,77 +39,4 @@ class Connection(object):
             raise sqlite3.OperationalError(e.message + ' : ' + sql)
 
 
-class ObjectFactory(object):
-    @classmethod
-    def create(cls, name, table_schema):
-        if 'PRIMARY KEY' in table_schema:
-            del table_schema['PRIMARY KEY']
-        retval = type(name, (ModelObject,), dict(_table=name, _schema=table_schema, _fields=table_schema.keys(), **table_schema))
-        return retval
-
-    @classmethod
-    def create_from_yaml(cls, name, filepath):
-        schema = parse_model(filepath)
-        return cls.create(name,schema[name])
-
-
-
-class ModelObject(object):
-    _fields = []
-    _schema = {}
-    _table  = ''
-    def __init__(self, *args, **kwargs):
-        if len(args) <= len(self._fields):
-            for i,arg in enumerate(args):
-                setattr(self,self._fields[i],arg)
-        for key,value in kwargs.iteritems():
-            if key in self._fields:
-                setattr(self,key,value)
-            else:
-                raise AttributeError('%s not defined in object schema.' % key)
-    def __repr__(self):
-        retval = '<%s ' % self.__class__.__name__
-        retval += ','.join(['%s=%s' %(k,getattr(self,k)) for k in self._fields])
-        retval +='>'
-        return retval
-
-    def iteritems(self):
-        for field in self._fields:
-            try:
-                v = getattr(self,field)
-            except AttributeError:
-                v = None
-            yield field, v
-        return
-
-    @classmethod
-    def initialize(cls, connection):
-        connection.create_table(cls._table, cls._schema)
-
-    @classmethod
-    def reinitialize(cls, connection):
-        connection.drop_table(cls._table)
-        cls.initialize(connection)
-
-    
-    def create(self,connection):
-        if not isinstance(connection,Connection):
-            raise TypeError('Connection required')
-
-        connection.insert(self._table,[getattr(self,f) for f in self._fields])
-
-    @classmethod
-    def where(cls, connection, expr):
-        query = 'SELECT * FROM %s WHERE %s' % (cls._table,expr)
-        return [cls(**i) for i in connection.query_db(query)]
-
-    @classmethod
-    def list(cls, connection):
-        query = 'SELECT * FROM %s' % cls._table
-        return [cls(**i) for i in connection.query_db(query)]
-
-    def __eq__(self, other):
-        return vars(self) == vars(other)
-
-            
 
