@@ -2,7 +2,7 @@ import yaml
 from flask_mvc.utils.yaml_loader import OrderedDictYAMLLoader
 
 
-class ModelTypes(object):
+class Types(object):
     attrs=['small_string','string','integer','float','real','numeric','boolean','date','datetime']
     
     small_string='VARCHAR(32)'

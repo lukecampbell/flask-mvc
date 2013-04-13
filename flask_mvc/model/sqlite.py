@@ -1,9 +1,9 @@
 import sqlite3
 import yaml
-from flask_mvc.model.generic import ModelTypes, Connection
+from flask_mvc.model.generic import Types, Connection
 from flask_mvc.model.generic import ModelObject as ModelObjectG
 
-class SQLiteTypes(ModelTypes):
+class SQLiteTypes(Types):
     small_string='TEXT'
     string='TEXT'
     integer='INTEGER'

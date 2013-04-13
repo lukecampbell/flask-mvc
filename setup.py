@@ -14,7 +14,13 @@ setup(name = 'Flask-MVC',
         author_email='luke.s.campbell@gmail.com',
         packages=packages,
         package_data={'flask_mvc.utils':['templates/*json']},
-        install_requires=['flask==0.9','requests==1.2.0','python-cjson==1.0.5', 'pyyaml==3.10'],
+        install_requires=[
+            'flask==0.9',
+            'requests==1.2.0',
+            'python-cjson==1.0.5', 
+            'pyyaml==3.10',
+            'sqlite3',
+            ],
         entry_points={
             'console_scripts':[
                 'flask-mvc-generate = flask_mvc.utils.generate:main',
