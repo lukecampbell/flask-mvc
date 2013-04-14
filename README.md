@@ -18,41 +18,54 @@ User:
   age: integer
 ```
 
-#### 2. Create an Object Type
+#### 2. Create the connection
 
 ```python
-from flask_mvc.model.sqlite import ObjectFactory
-User = ObjectFactory.create_from_yaml('User', 'User.yml')
+from flask_mvc.model.sqlite import SQLiteConnection
+conn = SQLiteConnection(':memory:')
 ```
 
-#### 3. Initialize the Object type in the database
+#### 3. Initialize the Object Type
+```python
+from flask_mvc.model.sqlite import SQLiteTypes
+User = SQLiteTypes.create_from_yaml('User', 'User.yml')
+```
+
+#### 4. Initialize the Object type in the database
 
 ```python
 # This creates the table 
-User.initialize()
+User.initialize(conn)
 ```
 
-#### 4. Enter some data
+#### 5. Enter some data
 
 ```python
-luke = User(id=0, name='Luke', age=26)
-luke.create(con)
-sean = User(id=1, name='Sean', age=27)
-sean.create(con)
+luke = User(id=0, name='Tony Stark', age=26)
+luke.create(conn)
+sean = User(id=1, name='Rowdy', age=27)
+sean.create(conn)
 ```
 
-#### 5. Get some data
+#### 6. Get some data
 
 ```python
-print User.list(con)
-> [<User id=0,name=Luke,age=26>, <User id=1,name=Sean,age=27>]
+print User.list(conn)
+> [<User id=0,name=Tony Stark,age=26>, <User id=1,name=Rowdy,age=27>]
 ```
 
-#### 6. Narrow it down
+#### 7. Narrow it down
 
 ```python
-print User.where(con, 'name="Luke"')
-> [<User id=0,name=Luke,age=26>]
+print User.where(conn, 'name="Tony Stark"')
+> [<User id=0,name=Tony Stark,age=26>]
+```
+
+#### 8. Better method to narrow it down
+
+```python
+print User.where_name_is(conn, 'Tony Stark',one=True)
+> <User id=0,name=Tony Stark,age=26>
 ```
 
 

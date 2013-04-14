@@ -1,21 +1,47 @@
 from flask_mvc.model.sqlite import SQLiteTypes, SQLiteConnection
+from flask_mvc.model.generic import Connection, Types
 
-from unittest import TestCase
+import unittest
 import pkg_resources
 
-class SQLiteTest(TestCase):
+class MockConnection(Connection):
+    _db=None
+    def __init__(self):
+        return
     
+    def close(self):
+        return
+    
+    def commit(self):
+        return 
+    
+    def commit_and_close(self):
+        return 
+
+    def execute(self, sql, args=()):
+        return self.response
+
+
+class BaseModelTest(unittest.TestCase):
     def setUp(self):
-        self.connection = SQLiteConnection(':memory:')
-        self.schema = SQLiteTypes.parse_model(pkg_resources.resource_filename(__name__, 'User.yml'))
+        self.connection = MockConnection()
+        self.schema = Types.parse_model(pkg_resources.resource_filename(__name__, 'User.yml'))
 
     def test_object_factory(self):
-        User = SQLiteTypes.create('User', self.schema['User'])
+        User = Types.create('User', self.schema['User'])
         luke = User(0,'luke',26)
         self.assertEquals(luke._fields, ['id','name','age'])
         self.assertEquals(luke.name,'luke')
         self.assertEquals(luke.id,0)
         self.assertEquals(luke.age,26)
+
+
+
+class SQLiteTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.connection = SQLiteConnection(':memory:')
+        self.schema = SQLiteTypes.parse_model(pkg_resources.resource_filename(__name__, 'User.yml'))
 
     def create_table_and_class(self,name):
         obj = SQLiteTypes.create(name, self.schema[name])
@@ -59,4 +85,12 @@ class SQLiteTest(TestCase):
         for user in User.where(self.connection,'age >26'):
             self.assertTrue(user.name in ('tony','sean'))
 
+        self.assertEquals(User.where_name_is(self.connection,'tony',one=True),users[3])
 
+        self.assertEquals(User.list(self.connection, limit=2), users[:2])
+
+
+
+@unittest.skip('Not implemented')
+class PSQLTest(unittest.TestCase):
+    pass

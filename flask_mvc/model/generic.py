@@ -34,6 +34,8 @@ class Types(object):
         if 'PRIMARY KEY' in table_schema:
             del table_schema['PRIMARY KEY']
         retval = type(name, (ModelObject,), dict(_table=pluralize(name), _schema=table_schema, _fields=table_schema.keys(), **table_schema))
+        for field in table_schema.keys():
+            setattr(retval,'where_%s_is' % field, classmethod(WhereIsWrapper(field)))
         return retval
 
     @classmethod
@@ -171,25 +173,30 @@ class ModelObject(object):
         connection.drop_table(cls._table)
         cls.initialize(connection)
 
-    
-    def create(self,connection):
-        if not isinstance(connection,Connection):
-            raise TypeError('Connection required')
-
+    def create(self, connection):
         connection.insert(self._table,[getattr(self,f) for f in self._fields])
 
     @classmethod
-    def where(cls, connection, expr):
+    def where(cls, connection, expr, one=False):
         query = 'SELECT * FROM %s WHERE %s' % (cls._table,expr)
-        return [cls(**i) for i in connection.query_db(query)]
+        retval = connection.query_db(query,one=one)
+        return [cls(**i) for i in retval] if not one else cls(**retval)
 
     @classmethod
-    def list(cls, connection):
+    def list(cls, connection, limit=None):
         query = 'SELECT * FROM %s' % cls._table
+        if limit:
+            query += ' LIMIT ?'
+            return [cls(**i) for i in connection.query_db(query,[limit])]
         return [cls(**i) for i in connection.query_db(query)]
 
     def __eq__(self, other):
         return vars(self) == vars(other)
 
-            
+class WhereIsWrapper(object):
+    def __init__(self,field):
+        self.field = field
+    def __call__(self, cls, connection, val, one=False):
+        query = 'SELECT * FROM %s WHERE %s=?' % (cls._table,self.field)
+        return cls(**connection.query_db(query,[val],one=one))
 
