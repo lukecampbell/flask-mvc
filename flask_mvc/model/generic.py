@@ -202,6 +202,10 @@ class ModelObject(object):
     def __eq__(self, other):
         return vars(self) == vars(other)
 
+    def pretty_format(self):
+        return '\n'.join(['%s: %s' %(k,v) for k,v in self.iteritems()])
+        
+
 
 class FieldWrapper(object):
     def eval(self, value):
