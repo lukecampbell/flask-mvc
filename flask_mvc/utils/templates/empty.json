@@ -1,11 +1,12 @@
 { "files": {
         ".gitignore":"*swp\n*pyc\nbuild/",
-        "README.md":"# %s\n",
+        "README.md":"# %(project)s\n",
         "MANIFEST.in":"include *.md\ninclude *.txt",
-        "setup.py":"try:\n    from setuptools import setup, find_packages\n    packages = find_packages()\nexcept ImportError:\n    from distutils import setup\n    packages = ['%s']\n\nsetup(name = '%s',\n        version='0.0.1',\n        description='',\n        long_description=open('README.md','r').read(),\n        license='',\n        author='',\n        author_email='',\n        packages=packages,\n        install_requires=[],\n        )\n",
-        "%s":{
+        "setup.py":"try:\n    from setuptools import setup, find_packages\n    packages = find_packages()\nexcept ImportError:\n    from distutils import setup\n    packages = ['%(name)s']\n\nsetup(name = '%(project)s',\n        version='0.0.1',\n        description='',\n        long_description=open('README.md','r').read(),\n        license='',\n        author='',\n        author_email='',\n        packages=packages,\n        install_requires=[],\n        )\n",
+        "%(name)s":{
             "__init__.py":"",
-            "app.py":"",
+            "config.py":"config = {'template_folder':'templates', 'host':'localhost', 'port':8080, 'debug':True}",
+            "app.py":"#!/usr/bin/env python\n\n\nfrom flask import Flask\nfrom %(name)s.config import config\n\n\napp = Flask('%(project)s', template_folder=config['template_folder'])\n\n@app.route('/')\ndef index():\n    return '<html><body>Welcome to %(project)s</body></html>'\n\ndef main():\n    app.run(debug=config['debug'], port=config['port'])\n\nif __name__ == '__main__':\n    main()\n",
             "controllers":{
                 "__init__.py":"",
                 "hello.py":""
