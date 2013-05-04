@@ -27,12 +27,14 @@ def generate_walk(dirent, name, template):
     '''
     Walk the template object creating the appropriate files
     '''
+    python_name = name.replace('-','_')
     if not isinstance(template,dict):
         return
     for k,v in template.iteritems():
-        if '%s' in k:
-            k = k.replace('%s', name)
+        config = {'project': name, 'name':python_name}
+        k = k % config
         path = os.path.join(dirent,k)
+        config['filepath'] = path
         if isinstance(v,dict):
             print 'Creating ', path
             if not os.path.exists(path):
@@ -41,9 +43,11 @@ def generate_walk(dirent, name, template):
         else:
             print 'Writing  ',path
             with open(os.path.join(dirent,k),'w') as f:
-                if '%s' in v:
-                    v = v.replace('%s',name)
-                f.write(v)
+                try:
+                    f.write(v % config)
+                except ValueError:
+                    print python_name
+                    raise
 def main():
     if len(sys.argv) < 3:
         print '%s <project name> <project root> [<template>]' % sys.argv[0]
