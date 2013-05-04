@@ -7,17 +7,19 @@
 
 class FlaskController(object):
 
-    def get(self,request):
+    def create(self, request):
         pass
 
-    def post(self,request):
+    def read(self, request):
         pass
 
-    def put(self,request):
+    def update(self, request):
         pass
 
-    def delete(self,request):
+    def delete(self, request):
         pass
+
+
 
 
 
