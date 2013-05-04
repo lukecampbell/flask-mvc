@@ -4,7 +4,7 @@ from flask_mvc.utils.pluralize import pluralize
 
 
 class Types(object):
-    attrs=['small_string','string','integer','float','real','numeric','boolean','date','datetime']
+    attrs=['small_string','string','integer','float','real','numeric','boolean','date','datetime','double','memo']
     
     small_string='VARCHAR(32)'
     string='VARCHAR(128)'
@@ -31,9 +31,10 @@ class Types(object):
 
     @classmethod
     def create(cls, name, table_schema):
+        fields = table_schema.keys()
         if 'PRIMARY KEY' in table_schema:
-            del table_schema['PRIMARY KEY']
-        retval = type(name, (ModelObject,), dict(_table=pluralize(name), _schema=table_schema, _fields=table_schema.keys(), **table_schema))
+            fields.remove('PRIMARY KEY')
+        retval = type(name, (ModelObject,), dict(_table=pluralize(name), _schema=table_schema, _fields=fields, **table_schema))
         for field in table_schema.keys():
             setattr(retval,'where_%s_is' % field, classmethod(WhereIsWrapper(field)))
         return retval
@@ -125,8 +126,11 @@ class Connection(object):
     def insert(self, table, values=[]):
         sql = 'INSERT INTO %s VALUES(' % table
         for i,value in enumerate(values):
+            if value is None:
+                values[i] = 'NULL'
             if isinstance(value,basestring):
-                values[i] = '"%s"' % value
+                value = value.replace("'",'"')
+                values[i] = "'%s'" % value
         sql += ','.join([str(v) for v in values])
         sql += ')'
         self.execute(sql)
@@ -147,6 +151,8 @@ class ModelObject(object):
         for key,value in kwargs.iteritems():
             if key in self._fields:
                 setattr(self,key,value)
+            elif key == 'PRIMARY KEY':
+                continue
             else:
                 raise AttributeError('%s not defined in object schema.' % key)
     def __repr__(self):
@@ -163,6 +169,9 @@ class ModelObject(object):
                 v = None
             yield field, v
         return
+
+    def csv(self):
+        return ','.join([getattr(self,f) for f in self._fields])
 
     @classmethod
     def initialize(cls, connection):
@@ -193,10 +202,24 @@ class ModelObject(object):
     def __eq__(self, other):
         return vars(self) == vars(other)
 
-class WhereIsWrapper(object):
+    def pretty_format(self):
+        return '\n'.join(['%s: %s' %(k,v) for k,v in self.iteritems()])
+        
+
+
+class FieldWrapper(object):
+    def eval(self, value):
+        if isinstance(value, basestring):
+            return "'%s'" % value
+        elif isinstance(value, (int,float)):
+            return value
+        
+
+
+class WhereIsWrapper(FieldWrapper):
     def __init__(self,field):
         self.field = field
     def __call__(self, cls, connection, val, one=False):
-        query = 'SELECT * FROM %s WHERE %s=?' % (cls._table,self.field)
-        return cls(**connection.query_db(query,[val],one=one))
+        query = 'SELECT * FROM %s WHERE %s=%s' % (cls._table,self.field, self.eval(val))
+        return cls(**connection.query_db(query,one=one)) if one else [cls(**i) for i in connection.query_db(query,one=one)]
 

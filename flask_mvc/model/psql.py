@@ -44,18 +44,10 @@ if _have_pg:
             except pg.ProgrammingError:
                 self.rollback()
                 raise
+            except pg.DataError as e:
+                self.rollback()
+                raise pg.DataError(e.message + ' : ' + sql)
         
-        def insert(self, table, values=[]):
-            sql = 'INSERT INTO %s VALUES(' % table
-            for i,value in enumerate(values):
-                if isinstance(value,basestring):
-                    values[i] = "'%s'" % value
-            sql += ','.join([str(v) for v in values])
-            sql += ')'
-            self.execute(sql)
-            self.commit()
-            return sql
-
 
 
 

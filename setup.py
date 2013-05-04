@@ -19,7 +19,6 @@ setup(name = 'Flask-MVC',
             'requests==1.2.0',
             'python-cjson==1.0.5', 
             'pyyaml==3.10',
-            'sqlite3',
             ],
         entry_points={
             'console_scripts':[
