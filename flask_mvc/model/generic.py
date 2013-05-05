@@ -118,7 +118,7 @@ class Connection(object):
         return sql
 
     def drop_table(self, name):
-        sql = 'DROP TABLE %s' % name
+        sql = 'DROP TABLE IF EXISTS %s' % name
         self.execute(sql)
         self.commit()
         return sql
